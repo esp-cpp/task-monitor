@@ -26,8 +26,12 @@ def main():
     # ensure time is correct on first start
     backend.update_time()
     # tasktablemodel.insertRow(["task 10", 15, 2047, 10])
-    backend.test_emit()
-    backend.test_emit_multiple()
+    backend.newTask.emit(["task 10", 15, 2047, 10])
+    backend.newTasks.emit([
+        ["task 11", 15, 2047, 10],
+        ["task 12", 25, 2047, 11],
+        ["task 13", 85, 8192, 13]
+    ])
 
     # run the app
     sys.exit(app.exec())

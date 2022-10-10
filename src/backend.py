@@ -64,20 +64,10 @@ class Backend(QObject):
                         # now parse the data and emit the task data if it matches
                         matches = self.parse_serial_data(serial_port_data)
                         # returns a list (tasks) of lists (entries)
-                        for match in matches:
-                            self.newTask.emit(match)
+                        if len(matches):
+                            self.newTasks.emit(matches)
             except Exception as e:
                 print("Couldn't open '{}': {}".format(self.port, e))
-
-    def test_emit(self):
-        self.newTask.emit(["task 10", 15, 2047, 10])
-
-    def test_emit_multiple(self):
-        self.newTasks.emit([
-            ["task 11", 15, 2047, 10],
-            ["task 12", 15, 2047, 11],
-            ["task 13", 15, 8192, 13]
-        ])
 
     def update_time(self):
         # Pass the current time to QML.
