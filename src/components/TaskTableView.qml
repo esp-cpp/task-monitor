@@ -22,11 +22,17 @@ Item {
         // boundsBehavior: Flickable.StopAtBounds
         clip: true
 
+        onWidthChanged: tableView.forceLayout()
+
+        // from:
+        // https://stackoverflow.com/questions/57928843/qml-tableview-with-dynamic-width-columns
         columnWidthProvider: function (_) {
-            return parent.width / 4
+            return tableView.model ? tableView.width / tableView.model.columnCount() : 0;
         }
 
-        delegate: TaskTableViewDelegate {}
+        delegate: TaskTableViewDelegate {
+            implicitWidth: tableView.columnWidthProvider()
+        }
         ScrollIndicator.horizontal: ScrollIndicator { }
         ScrollIndicator.vertical: ScrollIndicator { }
     }

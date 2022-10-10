@@ -4,7 +4,6 @@ import sys
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QAction
 
 from task_table_model import TaskTableModel
 from backend import Backend
@@ -18,20 +17,24 @@ def main():
 
     engine.load('main.qml')
 
+    ctx = engine.rootContext()
     root = engine.rootObjects()[0]
     # connect all the signals / slots
     engine.quit.connect(app.quit)
-    root.refreshPorts.connect(backend.list_serial_ports)
-    root.openPort.connect(backend.open_port)
-    root.closePort.connect(backend.close_port)
-    backend.newPorts.connect(root.updatePorts)
+
+    portMenu = root.findChild(QObject, "portMenu")
+    portMenu.refreshPorts.connect(backend.list_serial_ports)
+    portMenu.openPort.connect(backend.open_port)
+    portMenu.closePort.connect(backend.close_port)
+    backend.newPorts.connect(portMenu.updatePorts)
+    backend.portOpened.connect(portMenu.openedPort)
+    backend.portClosed.connect(portMenu.closedPort)
+
     root.quit.connect(backend.close_port)
     root.quit.connect(engine.quit)
     backend.updateTasks.connect(tasktablemodel.update)
     backend.newTask.connect(tasktablemodel.insertRow)
     backend.newTasks.connect(tasktablemodel.insertRows)
-    backend.portOpened.connect(root.openedPort)
-    backend.portClosed.connect(root.closedPort)
 
     # set the properties of the root
     root.setProperty('backend', backend)
