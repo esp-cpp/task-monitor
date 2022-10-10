@@ -33,6 +33,14 @@ class TaskTableModel(QAbstractTableModel):
         self._data.append(row)
         self.endInsertRows()
 
+    @pyqtSlot(list)
+    def insertRows(self, rows):
+        numRows = len(rows)
+        self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount() + numRows)
+        for row in rows:
+            self._data.append(row)
+        self.endInsertRows()
+
     @pyqtSlot(int, Qt.Orientation, result="QVariant")
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:

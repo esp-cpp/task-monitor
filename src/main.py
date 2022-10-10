@@ -14,7 +14,8 @@ def main():
 
     tasktablemodel = TaskTableModel()
     backend = Backend()
-    backend.newTaskData.connect(tasktablemodel.insertRow)
+    backend.newTask.connect(tasktablemodel.insertRow)
+    backend.newTasks.connect(tasktablemodel.insertRows)
 
     engine.load('main.qml')
 
@@ -26,6 +27,7 @@ def main():
     backend.update_time()
     # tasktablemodel.insertRow(["task 10", 15, 2047, 10])
     backend.test_emit()
+    backend.test_emit_multiple()
 
     # run the app
     sys.exit(app.exec())
