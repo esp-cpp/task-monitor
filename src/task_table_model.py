@@ -5,11 +5,7 @@ from PyQt5.QtCore import QTimer, QObject, pyqtSlot, pyqtSignal, QAbstractTableMo
 class TaskTableModel(QAbstractTableModel):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._data = [
-            ["Task 1",5,54,3],
-            ["Task 2","<1",6,1],
-            ["Task 3",23,5,2],
-        ]
+        self._data = []
         self._header = ["Name", "CPU %", "High Water Mark (B)", "Priority"]
 
     def columnCount(self, parent=QModelIndex()):
@@ -21,11 +17,19 @@ class TaskTableModel(QAbstractTableModel):
     def data(self, index, role=Qt.DisplayRole):
         i = index.row()
         j = index.column()
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole and i < len(self._data) and j < len(self._data[i]):
             return "{}".format(self._data[i][j])
+        else:
+            return QVariant()
 
+    @pyqtSlot(list)
     def update(self, dataIn):
+        self.beginRemoveRows(QModelIndex(), 0, self.rowCount())
+        self._data = []
+        self.endRemoveRows()
+        self.beginInsertRows(QModelIndex(), 0, len(dataIn))
         self._data = dataIn
+        self.endInsertRows()
 
     @pyqtSlot(list)
     def insertRow(self, row):
