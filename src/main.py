@@ -13,14 +13,16 @@ def main():
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
-    # QtDeclarative.qmlRegisterType(Graph, 'myPyQtGraph', 1, 0, 'PyQtGraph')
-
     tasktablemodel = TaskTableModel()
     backend = Backend()
 
     ctx = engine.rootContext()
-    engine.rootContext().setContextProperty('backend', backend)
-    engine.rootContext().setContextProperty('tableModel', tasktablemodel)
+    ctx.setContextProperty('backend', backend)
+    ctx.setContextProperty('logModel', backend.logModel)
+    ctx.setContextProperty('tableModel', tasktablemodel)
+
+    def update_log_model():
+        ctx.setContextProperty('logModel', backend.logModel)
 
     engine.load(QUrl('main.qml'))
 
@@ -29,41 +31,19 @@ def main():
     print(QStyleFactory.keys())
     app.setStyle('Windows')
 
-    # set the properties of the root
-    # root.setProperty('backend', backend)
-    # root.setProperty('tableModel', tasktablemodel)
-
     # connect all the signals / slots
     engine.quit.connect(app.quit)
-
-    '''
-    portMenu = root.findChild(QObject, "portMenu")
-    portMenu.refreshPorts.connect(backend.list_serial_ports)
-    portMenu.openPort.connect(backend.open_port)
-    portMenu.closePort.connect(backend.close_port)
-    backend.newPorts.connect(portMenu.updatePorts)
-    backend.portOpened.connect(portMenu.openedPort)
-    backend.portClosed.connect(portMenu.closedPort)
-    '''
 
     root.quit.connect(backend.close_port)
     root.quit.connect(engine.quit)
     backend.updateTasks.connect(tasktablemodel.update)
     backend.newTask.connect(tasktablemodel.insertRow)
     backend.newTasks.connect(tasktablemodel.insertRows)
+    backend.logChanged.connect(update_log_model)
 
     # ensure data is correct on first start
     backend.update_time()
     backend.list_serial_ports()
-
-    '''
-    backend.newTask.emit(["task 10", 15, 2047, 10])
-    backend.newTasks.emit([
-        ["task 11", 15, 2047, 10],
-        ["task 12", 25, 2047, 11],
-        ["task 13", 85, 8192, 13]
-    ])
-    '''
 
     # run the app
     sys.exit(app.exec())

@@ -16,6 +16,10 @@ Example:
 
 ![main_image](./images/main_image.png)
 
+![util_image](./images/utilization_image.png)
+
+![log_image](./images/log_image.png)
+
 ![port_image](./images/port_image.png)
 
 Inspiration:

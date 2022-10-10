@@ -6,11 +6,12 @@ import threading
 import serial, serial.tools.list_ports
 from time import strftime, localtime
 from datetime import datetime
-from PyQt5.QtCore import QTimer, QObject, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import QTimer, QObject, pyqtProperty, pyqtSlot, pyqtSignal
 
 class Backend(QObject):
     updated = pyqtSignal(str, arguments=['time'])
     newLog = pyqtSignal(str, arguments=['log'])
+    logChanged = pyqtSignal()
     # contains all the serial ports
     newPorts = pyqtSignal(list, arguments=['ports'])
     portOpened = pyqtSignal(str, arguments=['port'])
@@ -25,6 +26,8 @@ class Backend(QObject):
 
     def __init__(self):
         super().__init__()
+
+        self._logModel = []
 
         # define serial port & thread for it
         self.port = None
@@ -45,6 +48,10 @@ class Backend(QObject):
                 self.close_port()
         except Exception as e:
             pass
+
+    @pyqtProperty(list, notify=logChanged)
+    def logModel(self):
+        return self._logModel
 
     @pyqtSlot(result=list)
     def list_serial_ports(self):
@@ -82,6 +89,8 @@ class Backend(QObject):
     @pyqtSlot(str)
     def open_port(self, port):
         self.close_port()
+        self._logModel.clear()
+        self.logChanged.emit()
         self.port = port
         self.start_time = datetime.now()
         self.start_serial_port()
@@ -134,6 +143,12 @@ class Backend(QObject):
         ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
         return ansi_escape.sub("", str(line))
 
+    def update_log(self, line):
+        if not line or len(line) == 0:
+            return
+        self.newLog.emit(line)
+        self._logModel.append(line)
+        self.logChanged.emit()
 
     def serial_port_thread_func(self):
         if self.port and self.baudrate:
@@ -159,7 +174,7 @@ class Backend(QObject):
                             serial_port_data = serial_port_data.decode("utf-8", "backslashreplace")
                         serial_port_data = serial_port_data.strip()
                         serial_port_data = self.escape_ansi(serial_port_data)
-                        self.newLog.emit(serial_port_data)
+                        self.update_log(serial_port_data)
                         # now parse the data and emit the task data if it matches
                         matches = self.parse_serial_data(serial_port_data)
                         # returns a list (tasks) of lists (entries)

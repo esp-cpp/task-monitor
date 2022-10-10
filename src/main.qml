@@ -95,7 +95,6 @@ ApplicationWindow {
             title: "Log"
             anchors.fill: parent
             LogView {
-                logModel: backend
             }
         }
 
