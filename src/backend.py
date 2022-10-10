@@ -7,6 +7,9 @@ import serial, serial.tools.list_ports
 from time import strftime, localtime
 from datetime import datetime
 from PyQt5.QtCore import QTimer, QObject, pyqtProperty, pyqtSlot, pyqtSignal
+from ansi2html import Ansi2HTMLConverter
+
+conv = Ansi2HTMLConverter()
 
 class Backend(QObject):
     updated = pyqtSignal(str, arguments=['time'])
@@ -146,8 +149,13 @@ class Backend(QObject):
     def update_log(self, line):
         if not line or len(line) == 0:
             return
-        self.newLog.emit(line)
-        self._logModel.append(line)
+        # replace \r\n with \n
+        l = line.replace('\r\n','')
+        l = l.replace('\n','')
+        self.newLog.emit(l)
+        # convert to html
+        html = conv.convert(l)
+        self._logModel.append(html)
         self.logChanged.emit()
 
     def serial_port_thread_func(self):
@@ -172,9 +180,9 @@ class Backend(QObject):
                         serial_port_data = self.serial_port.readline()
                         if sys.version_info >= (3, 0):
                             serial_port_data = serial_port_data.decode("utf-8", "backslashreplace")
+                        self.update_log(serial_port_data)
                         serial_port_data = serial_port_data.strip()
                         serial_port_data = self.escape_ansi(serial_port_data)
-                        self.update_log(serial_port_data)
                         # now parse the data and emit the task data if it matches
                         matches = self.parse_serial_data(serial_port_data)
                         # returns a list (tasks) of lists (entries)
