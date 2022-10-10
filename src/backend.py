@@ -1,12 +1,16 @@
 #!/usr/bin/python
 import sys
+import re
+import time
 import threading
 import serial, serial.tools.list_ports
 from time import strftime, localtime
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal
+from datetime import datetime
+from PyQt5.QtCore import QTimer, QObject, pyqtSlot, pyqtSignal
 
 class Backend(QObject):
     updated = pyqtSignal(str, arguments=['time'])
+    newLog = pyqtSignal(str, arguments=['log'])
     # contains all the serial ports
     newPorts = pyqtSignal(list, arguments=['ports'])
     portOpened = pyqtSignal(str, arguments=['port'])
@@ -17,6 +21,7 @@ class Backend(QObject):
     newTask = pyqtSignal(list, arguments=['task'])
     # contains additional tasks
     newTasks = pyqtSignal(list, arguments=['tasks'])
+    utilization = pyqtSignal(float, float, arguments=['time', 'utilization'])
 
     def __init__(self):
         super().__init__()
@@ -24,6 +29,7 @@ class Backend(QObject):
         # define serial port & thread for it
         self.port = None
         self.serial_port = None
+        self.start_time = datetime.now()
         self.baudrate = 115200
         self.serial_port_thread = None
 
@@ -33,6 +39,14 @@ class Backend(QObject):
         self.timer.timeout.connect(self.update_time)
         self.timer.start()
 
+    def __del__(self):
+        try:
+            if self.run_thread:
+                self.close_port()
+        except Exception as e:
+            pass
+
+    @pyqtSlot(result=list)
     def list_serial_ports(self):
         """Lists serial port names
         :returns:
@@ -53,6 +67,7 @@ class Backend(QObject):
         self.newPorts.emit(result)
         return result
 
+    @pyqtSlot()
     def close_port(self):
         # stop it in case it's running
         self.run_thread = False
@@ -64,9 +79,11 @@ class Backend(QObject):
         # indicate that we have no port now
         self.port = None
 
+    @pyqtSlot(str)
     def open_port(self, port):
         self.close_port()
         self.port = port
+        self.start_time = datetime.now()
         self.start_serial_port()
 
     def start_serial_port(self):
@@ -74,6 +91,22 @@ class Backend(QObject):
         self.serial_port_thread = threading.Thread(target=self.serial_port_thread_func)
         self.run_thread = True
         self.serial_port_thread.start()
+
+    def get_task_utilization(self, task_entries):
+        if len(task_entries) != 4:
+            print("couldn't parse '{}'".format(task_entries))
+            return 0.0
+        [name, cpu_util, shwm, prio] = task_entries
+        if 'IDLE' in name:
+            return 0.0
+        cpu_util = cpu_util.replace('%','')
+        if '<' in cpu_util:
+            cpu_util = '0.5'
+        try:
+            return float(cpu_util)
+        except:
+            print("exception parsing",cpu_util, "as float")
+            return 0.0
 
     def parse_serial_data(self, strdata):
         if not strdata.startswith('[TM]'):
@@ -85,10 +118,22 @@ class Backend(QObject):
         # the tasks are separated by ';;'
         task_data = strdata.split(';;')
         tasks = []
+        cpu = 0.0
         for task in task_data:
             if len(task) and ',' in task:
-                tasks.append(task.split(','))
+                entries = task.split(',')
+                tasks.append(entries)
+                cpu += self.get_task_utilization(entries)
+        if cpu:
+            cpu = cpu / 2.0 # we have two cores, so divide by 2
+            t = (datetime.now() - self.start_time).total_seconds()
+            self.utilization.emit(t,cpu)
         return tasks
+
+    def escape_ansi(self, line):
+        ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+        return ansi_escape.sub("", str(line))
+
 
     def serial_port_thread_func(self):
         if self.port and self.baudrate:
@@ -102,20 +147,39 @@ class Backend(QObject):
             try:
                 self.serial_port.open()
                 self.portOpened.emit(self.port)
+            except Exception as e:
+                print("Couldn't open '{}': {}".format(self.port, e))
+            try:
+                has_data = True
                 while self.run_thread:
                     if self.serial_port.inWaiting():
+                        has_data = True
                         serial_port_data = self.serial_port.readline()
                         if sys.version_info >= (3, 0):
                             serial_port_data = serial_port_data.decode("utf-8", "backslashreplace")
                         serial_port_data = serial_port_data.strip()
+                        serial_port_data = self.escape_ansi(serial_port_data)
+                        self.newLog.emit(serial_port_data)
                         # now parse the data and emit the task data if it matches
                         matches = self.parse_serial_data(serial_port_data)
                         # returns a list (tasks) of lists (entries)
                         if len(matches):
                             self.updateTasks.emit(matches)
+                    else:
+                        if not has_data:
+                            break
+                        else:
+                            has_data = False
+                        time.sleep(0.10)
             except Exception as e:
-                print("Couldn't open '{}': {}".format(self.port, e))
-            self.portClosed.emit(self.port)
+                print(e)
+                pass
+            try:
+                # this may happen when being destroyed, at which point the
+                # signal is no longer valid
+                self.portClosed.emit(self.port)
+            except:
+                pass
         else:
             print("Couldn't start serial port thread, bad port/baud: {}/{}".format(self.port, self.baudrate))
         print("Port thread exiting!")

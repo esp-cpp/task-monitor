@@ -27,7 +27,7 @@ Item {
         // from:
         // https://stackoverflow.com/questions/57928843/qml-tableview-with-dynamic-width-columns
         columnWidthProvider: function (_) {
-            return tableView.model ? tableView.width / tableView.model.columnCount() : 0;
+            return tableView.model ? tableView.width / tableView.model.columnCount() : 10;
         }
 
         delegate: TaskTableViewDelegate {

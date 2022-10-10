@@ -3,25 +3,40 @@ import sys
 
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, QUrl
+from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 from task_table_model import TaskTableModel
 from backend import Backend
 
 def main():
-    app = QGuiApplication(sys.argv)
+    app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
+
+    # QtDeclarative.qmlRegisterType(Graph, 'myPyQtGraph', 1, 0, 'PyQtGraph')
 
     tasktablemodel = TaskTableModel()
     backend = Backend()
 
-    engine.load('main.qml')
-
     ctx = engine.rootContext()
+    engine.rootContext().setContextProperty('backend', backend)
+    engine.rootContext().setContextProperty('tableModel', tasktablemodel)
+
+    engine.load(QUrl('main.qml'))
+
     root = engine.rootObjects()[0]
+
+    print(QStyleFactory.keys())
+    app.setStyle('Windows')
+
+    # set the properties of the root
+    # root.setProperty('backend', backend)
+    # root.setProperty('tableModel', tasktablemodel)
+
     # connect all the signals / slots
     engine.quit.connect(app.quit)
 
+    '''
     portMenu = root.findChild(QObject, "portMenu")
     portMenu.refreshPorts.connect(backend.list_serial_ports)
     portMenu.openPort.connect(backend.open_port)
@@ -29,16 +44,13 @@ def main():
     backend.newPorts.connect(portMenu.updatePorts)
     backend.portOpened.connect(portMenu.openedPort)
     backend.portClosed.connect(portMenu.closedPort)
+    '''
 
     root.quit.connect(backend.close_port)
     root.quit.connect(engine.quit)
     backend.updateTasks.connect(tasktablemodel.update)
     backend.newTask.connect(tasktablemodel.insertRow)
     backend.newTasks.connect(tasktablemodel.insertRows)
-
-    # set the properties of the root
-    root.setProperty('backend', backend)
-    root.setProperty('tableModel', tasktablemodel)
 
     # ensure data is correct on first start
     backend.update_time()

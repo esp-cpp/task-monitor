@@ -6,6 +6,7 @@ Menu {
     signal refreshPorts
     signal openPort(variant port)
     signal closePort
+    property QtObject portBackend
 
     function updatePorts(ports) {
         // Update the serial ports list
@@ -30,6 +31,15 @@ Menu {
     }
 
     title: qsTr("&Ports")
+
+    Component.onCompleted: {
+        refreshPorts.connect(portBackend.list_serial_ports)
+        openPort.connect(portBackend.open_port)
+        closePort.connect(portBackend.close_port)
+        portBackend.newPorts.connect(updatePorts)
+        portBackend.portOpened.connect(openedPort)
+        portBackend.portClosed.connect(closedPort)
+    }
 
     Action {
         text: qsTr("&Refresh")

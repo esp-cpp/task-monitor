@@ -3,7 +3,7 @@ import QtQuick.Controls 2.4
 
 Rectangle {
     // minWidth: 100
-    // minHeight: 50
+    implicitHeight: 50
     border.width: 1
 
     Text {

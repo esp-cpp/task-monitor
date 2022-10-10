@@ -1,0 +1,17 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file alias="main.qml">main.qml</file>
+        <file alias="qtquickcontrols2.conf">qtquickcontrols2.conf</file>
+    </qresource>
+    <qresource prefix="components">
+        <file alias="LogView.qml">LogView.qml</file>
+        <file alias="PortMenu.qml">PortMenu.qml</file>
+        <file alias="ProcessGraph.qml">ProcessGraph.qml</file>
+        <file alias="TaskTableView.qml">TaskTableView.qml</file>
+        <file alias="TaskTableViewDelegate.qml">TaskTableViewDelegate.qml</file>
+    </qresource>
+    <qresource prefix="images">
+        <file alias="background.png">background.png</file>
+    </qresource>
+</RCC>
