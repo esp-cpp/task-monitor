@@ -27,6 +27,7 @@ class TaskTableModel(QAbstractTableModel):
     def update(self, dataIn):
         self._data = dataIn
 
+    @pyqtSlot(list)
     def insertRow(self, row):
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._data.append(row)
